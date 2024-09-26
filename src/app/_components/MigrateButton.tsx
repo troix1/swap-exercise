@@ -1,13 +1,9 @@
 "use client";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import React from "react";
-import { Button } from "./Button";
+import { Button } from "./ui/Button";
 
-const MigrateButton = () => {
-  const handleMigrate = () => {
-    console.log("migrate");
-  };
-
+const MigrateButton = ({ onClick }: { onClick: () => void }) => {
   return (
     <ConnectButton.Custom>
       {({ account, chain, openChainModal, openConnectModal, mounted }) => {
@@ -33,8 +29,8 @@ const MigrateButton = () => {
                   <Button
                     disabled={false}
                     onClick={openConnectModal}
-                    className="w-full bg-blue-700 py-6 text-white disabled:bg-blue-100"
                     type="button"
+                    className="w-full"
                   >
                     Connect Wallet
                   </Button>
@@ -53,8 +49,8 @@ const MigrateButton = () => {
                 <div>
                   <Button
                     disabled={false}
-                    onClick={handleMigrate}
-                    className="w-full bg-blue-700 py-6 text-white disabled:bg-blue-100"
+                    onClick={onClick}
+                    className="w-full"
                     type="button"
                   >
                     Migrate

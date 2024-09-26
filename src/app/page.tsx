@@ -1,6 +1,5 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Input } from "./_components/Input";
-import MigrateButton from "./_components/MigrateButton";
+import MigrateTokens from "./_components/MigrateTokens";
 
 export default async function Home() {
   return (
@@ -43,17 +42,7 @@ export default async function Home() {
             <ConnectButton />
           </div>
         </div>
-        <div className="py-4">
-          <div className="mb-2 text-sm font-semibold">Migrate</div>
-          <Input type="number" placeholder="0.00" />
-          <div className="mt-2 flex items-center justify-between">
-            <div>MAX</div>
-            <div>Available -.--</div>
-          </div>
-          <div className="mt-4">
-            <MigrateButton />
-          </div>
-        </div>
+        <MigrateTokens />
       </div>
     </div>
   );
