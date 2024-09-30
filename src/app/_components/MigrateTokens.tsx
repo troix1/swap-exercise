@@ -3,18 +3,72 @@ import React, { useEffect, useState } from "react";
 import { Input } from "./ui/Input";
 import MigrateButton from "./MigrateButton";
 import { usePymtContract } from "~/modules/usePymtContract";
-import { formatUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { Button } from "./ui/Button";
 import { useSwapContract } from "~/modules/useSwapContract";
+import { pymtAbi } from "~/abi/pymt-abi";
+import useApproveToken from "~/modules/useApproveToken";
+import { useSwapTokens } from "~/modules/useSwapTokens";
+import { swapAbi } from "~/abi/swap-abi";
 
 const MigrateTokens = () => {
-  const { balance } = usePymtContract();
+  const { allowance, refetchAllowance, balance, refetchBalance, decimals } =
+    usePymtContract();
+  const { swapTokens, isSwapConfirmed, isSwapConfirming, swapPending } =
+    useSwapTokens();
+  const {
+    approveToken,
+    isLoading: isApprovalLoading,
+    approveError,
+  } = useApproveToken();
   const [inputValue, setInputValue] = useState("");
-  const { swap } = useSwapContract();
+  const { startTime, endTime, paused, swapContractAddress, appAddress } =
+    useSwapContract();
+
+  const handleSetMaxValue = () => {
+    setInputValue(formatUnits(balance, decimals));
+  };
 
   const handleMigrate = async () => {
-    const result = await swap(BigInt(inputValue));
-    console.log(result);
+    const parsedInputValue = parseUnits(inputValue, decimals);
+    if (parsedInputValue > allowance) {
+      await approveToken({
+        abi: pymtAbi,
+        address: appAddress!,
+        functionName: "approve",
+        args: [swapContractAddress!, parseUnits(inputValue, decimals)],
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!isApprovalLoading) {
+      refetchAllowance();
+      handleSwap();
+    }
+  }, [isApprovalLoading]);
+
+  useEffect(() => {
+    if (isSwapConfirmed) {
+      refetchAllowance();
+      refetchBalance();
+      setInputValue("");
+    }
+  }, [isSwapConfirmed]);
+
+  const handleSwap = async () => {
+    // check startTime, endTime, pause
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    if (now > startTime && now < endTime && paused === false) {
+      await swapTokens({
+        abi: swapAbi,
+        address: swapContractAddress,
+        functionName: "swap",
+        args: [parseUnits(inputValue, decimals)],
+      });
+    } else {
+      console.log("Swap not allowed");
+    }
   };
 
   return (
@@ -30,15 +84,24 @@ const MigrateTokens = () => {
         <Button
           variant="link"
           size="sm"
-          onClick={() => setInputValue(balance.toString())}
+          onClick={handleSetMaxValue}
           className="p-0"
         >
           MAX
         </Button>
-        {balance !== undefined && <div>Available {balance.toString()}</div>}
+        {balance !== undefined && (
+          <div>Available {formatUnits(balance, decimals)}</div>
+        )}
+        {allowance !== undefined && (
+          <div>Allowance {formatUnits(allowance, decimals)}</div>
+        )}
       </div>
       <div className="mt-4">
-        <MigrateButton onClick={handleMigrate} />
+        {isApprovalLoading || isSwapConfirming || swapPending ? (
+          <div className="text-center">Loading...</div>
+        ) : (
+          <MigrateButton onClick={handleMigrate} />
+        )}
       </div>
     </div>
   );

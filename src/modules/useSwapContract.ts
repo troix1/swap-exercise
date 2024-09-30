@@ -8,7 +8,8 @@ export const useSwapContract = () => {
     data: swapData,
     error: swapError,
   } = useWriteContract();
-  const swapContractAddress = "0x007fFBE15c8c0E4Eb9bC7E8ac2431eAfb4bAa75A";
+  const swapContractAddress: `0x${string}` =
+    "0x007fFBE15c8c0E4Eb9bC7E8ac2431eAfb4bAa75A";
 
   const {
     data: startTime,
@@ -30,6 +31,19 @@ export const useSwapContract = () => {
   } = useReadContract({
     abi: swapAbi,
     functionName: "endTime",
+    address: swapContractAddress,
+    query: {
+      enabled: isConnected,
+    },
+  });
+
+  const {
+    data: paused,
+    error: pausedError,
+    isLoading: isPausedLoading,
+  } = useReadContract({
+    abi: swapAbi,
+    functionName: "paused",
     address: swapContractAddress,
     query: {
       enabled: isConnected,
@@ -73,7 +87,13 @@ export const useSwapContract = () => {
     return swapData ?? swapError;
   };
 
-  if (startTimeError || endTimeError || appAddressError || rwaxAddressError) {
+  if (
+    startTimeError ||
+    endTimeError ||
+    appAddressError ||
+    rwaxAddressError ||
+    pausedError
+  ) {
     console.error("Error fetching contract data");
   }
 
@@ -81,11 +101,14 @@ export const useSwapContract = () => {
     isStartTimeLoading ||
     isEndTimeLoading ||
     isAppAddressLoading ||
-    isRwaxAddressLoading;
+    isPausedLoading;
+  isRwaxAddressLoading;
 
   return {
-    startTime,
-    endTime,
+    swapContractAddress,
+    startTime: startTime ?? 0n,
+    endTime: endTime ?? 0n,
+    paused,
     rwaxAddress,
     appAddress,
     swap,
