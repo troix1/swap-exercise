@@ -19,7 +19,7 @@ const MigrateTokens = () => {
   const {
     approveToken,
     isLoading: isApprovalLoading,
-    approveError,
+    isApprovalConfirmed,
   } = useApproveToken();
   const [inputValue, setInputValue] = useState("");
   const { startTime, endTime, paused, swapContractAddress, appAddress } =
@@ -42,7 +42,7 @@ const MigrateTokens = () => {
   };
 
   useEffect(() => {
-    if (!isApprovalLoading) {
+    if (!isApprovalLoading && isApprovalConfirmed) {
       refetchAllowance();
       handleSwap();
     }

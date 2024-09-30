@@ -18,6 +18,7 @@ const useApproveToken = () => {
     approveHash,
     approveError,
     isLoading: isApprovalConfirming,
+    isApprovalConfirmed,
   };
 };
 
