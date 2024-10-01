@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Input } from "./ui/Input";
 import MigrateButton from "./MigrateButton";
 import { usePymtContract } from "~/modules/usePymtContract";
@@ -10,6 +10,10 @@ import { pymtAbi } from "~/abi/pymt-abi";
 import useApproveToken from "~/modules/useApproveToken";
 import { useSwapTokens } from "~/modules/useSwapTokens";
 import { swapAbi } from "~/abi/swap-abi";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { BuyAmountValidationSchema } from "~/modules/validation/buy-form.validation";
+import { z } from "zod";
 
 const MigrateTokens = () => {
   const { allowance, refetchAllowance, balance, refetchBalance, decimals } =
@@ -25,19 +29,31 @@ const MigrateTokens = () => {
   const { startTime, endTime, paused, swapContractAddress, appAddress } =
     useSwapContract();
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(BuyAmountValidationSchema({ maxDecimals: decimals })),
+  });
+
   const handleSetMaxValue = () => {
-    setInputValue(formatUnits(balance, decimals));
+    setValue("amount", formatUnits(balance, decimals));
   };
 
-  const handleMigrate = async () => {
-    const parsedInputValue = parseUnits(inputValue, decimals);
-    if (parsedInputValue > allowance) {
+  const handleMigrate = async (amount: string) => {
+    const parsedAmountValue = parseUnits(amount, decimals);
+    if (parsedAmountValue > allowance) {
       await approveToken({
         abi: pymtAbi,
         address: appAddress!,
         functionName: "approve",
-        args: [swapContractAddress!, parseUnits(inputValue, decimals)],
+        args: [swapContractAddress!, parseUnits(amount, decimals)],
       });
+    } else {
+      handleSwap();
     }
   };
 
@@ -46,7 +62,7 @@ const MigrateTokens = () => {
       refetchAllowance();
       handleSwap();
     }
-  }, [isApprovalLoading]);
+  }, [isApprovalLoading, isApprovalConfirmed]);
 
   useEffect(() => {
     if (isSwapConfirmed) {
@@ -64,46 +80,62 @@ const MigrateTokens = () => {
         abi: swapAbi,
         address: swapContractAddress,
         functionName: "swap",
-        args: [parseUnits(inputValue, decimals)],
+        args: [parseUnits(getValues("amount"), decimals)],
       });
     } else {
       console.log("Swap not allowed");
     }
   };
 
+  const form = useForm<z.infer<ReturnType<typeof BuyAmountValidationSchema>>>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(
+      BuyAmountValidationSchema({
+        maxDecimals: decimals,
+        max: balance,
+      }),
+    ),
+    defaultValues: {
+      amount: "",
+    },
+  });
+
   return (
-    <div className="py-4">
-      <div className="mb-2 text-sm font-semibold">Migrate</div>
-      <Input
-        type="number"
-        placeholder="0.00"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-      />
-      <div className="mt-2 flex items-center justify-between">
-        <Button
-          variant="link"
-          size="sm"
-          onClick={handleSetMaxValue}
-          className="p-0"
-        >
-          MAX
-        </Button>
-        {balance !== undefined && (
-          <div>Available {formatUnits(balance, decimals)}</div>
-        )}
-        {allowance !== undefined && (
-          <div>Allowance {formatUnits(allowance, decimals)}</div>
-        )}
+    <form
+      onSubmit={handleSubmit((values) => {
+        handleMigrate(values?.amount);
+      })}
+    >
+      <div className="py-4">
+        <div className="mb-2 text-sm font-semibold">Migrate</div>
+        <Input {...register("amount")} type="string" placeholder="0.00" />
+        {errors.amount && <div>{errors.amount.message?.toString()}</div>}
+        <div className="mt-2 flex items-center justify-between">
+          <Button
+            variant="link"
+            size="sm"
+            onClick={handleSetMaxValue}
+            className="p-0"
+          >
+            MAX
+          </Button>
+          {balance !== undefined && (
+            <div>Available {formatUnits(balance, decimals)}</div>
+          )}
+          {allowance !== undefined && (
+            <div>Allowance {formatUnits(allowance, decimals)}</div>
+          )}
+        </div>
+        <div className="mt-4">
+          {isApprovalLoading || isSwapConfirming || swapPending ? (
+            <div className="text-center">Loading...</div>
+          ) : (
+            <MigrateButton />
+          )}
+        </div>
       </div>
-      <div className="mt-4">
-        {isApprovalLoading || isSwapConfirming || swapPending ? (
-          <div className="text-center">Loading...</div>
-        ) : (
-          <MigrateButton onClick={handleMigrate} />
-        )}
-      </div>
-    </div>
+    </form>
   );
 };
 

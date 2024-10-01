@@ -3,7 +3,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import React from "react";
 import { Button } from "./ui/Button";
 
-const MigrateButton = ({ onClick }: { onClick: () => void }) => {
+const MigrateButton = () => {
   return (
     <ConnectButton.Custom>
       {({ account, chain, openChainModal, openConnectModal, mounted }) => {
@@ -47,12 +47,7 @@ const MigrateButton = ({ onClick }: { onClick: () => void }) => {
 
               return (
                 <div>
-                  <Button
-                    disabled={false}
-                    onClick={onClick}
-                    className="w-full"
-                    type="button"
-                  >
+                  <Button disabled={false} className="w-full" type="submit">
                     Migrate
                   </Button>
                 </div>
